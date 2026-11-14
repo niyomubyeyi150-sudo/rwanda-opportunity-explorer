@@ -1,6 +1,24 @@
+import { useState } from "react";
 import hezaLogo from "./assets/Heza Rwanda Opportunities Logo.png";
+import { seedOpportunities } from "./data/seedOpportunities";
+import OpportunityList from "./component/OpportunityList";
+import OpportunityFilters from "./component/OpportunityFilters";
+import AddOpportunityForm from "./component/AddOpportunityForm";
 
 function App() {
+  const [opportunities, setOpportunities] = useState(seedOpportunities);
+  const [savedIds, setSavedIds] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [availableOnly, setAvailableOnly] = useState(false);
+  const [savedOnly, setSavedOnly] = useState(false);
+  const [sortBy, setSortBy] = useState("date");
+  const [showForm, setShowForm] = useState(false);
+
+  // SUCCESS AND CANCEL MESSAGES
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackType, setFeedbackType] = useState("");
+
   const categories = [
     {
       name: "Workshops",
@@ -40,13 +58,79 @@ function App() {
     },
   ];
 
+  // SAVE AND UNSAVE OPPORTUNITIES
+  function handleSave(id) {
+    setSavedIds((currentSavedIds) =>
+      currentSavedIds.includes(id)
+        ? currentSavedIds.filter((savedId) => savedId !== id)
+        : [...currentSavedIds, id],
+    );
+  }
+
+  // FILTER AND SORT OPPORTUNITIES
+  const filteredOpportunities = opportunities
+    .filter((op) => {
+      const search = searchTerm.trim().toLowerCase();
+
+      return (
+        (op.title.toLowerCase().includes(search) ||
+          op.city.toLowerCase().includes(search)) &&
+        (selectedCategory === "All" || op.category === selectedCategory) &&
+        (!availableOnly || op.availableSeats > 0) &&
+        (!savedOnly || savedIds.includes(op.id))
+      );
+    })
+    .sort((a, b) =>
+      sortBy === "date"
+        ? a.date.localeCompare(b.date)
+        : sortBy === "title"
+          ? a.title.localeCompare(b.title)
+          : sortBy === "seats"
+            ? b.availableSeats - a.availableSeats
+            : 0,
+    );
+
+  // RESET FILTERS
+  function handleResetFilters() {
+    setSearchTerm("");
+    setSelectedCategory("All");
+    setAvailableOnly(false);
+    setSavedOnly(false);
+    setSortBy("date");
+  }
+
+  // ADD NEW OPPORTUNITY
+  function handleAddOpportunity(newOpportunity) {
+    setOpportunities((current) => [...current, newOpportunity]);
+
+    setShowForm(false);
+    handleResetFilters();
+
+    setFeedbackMessage("Opportunity added successfully!");
+    setFeedbackType("success");
+  }
+
+  // CANCEL ADD OPPORTUNITY
+  function handleCancelForm() {
+    setShowForm(false);
+
+    setFeedbackMessage("Adding opportunity was cancelled.");
+    setFeedbackType("cancel");
+  }
+
+  // OPEN ADD OPPORTUNITY FORM
+  function handleOpenForm() {
+    setFeedbackMessage("");
+    setFeedbackType("");
+    setShowForm(true);
+  }
+
   return (
     <div className="min-h-screen bg-[#F7F3ED] text-[#302B31]">
       {/* NAVBAR */}
       <header className="sticky top-0 z-50 border-b border-[#E8D8C5] bg-[#F7F3ED]/95 backdrop-blur">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-          {/* LOGO */}
-          <a href="/" className="flex items-center">
+          <a href="#home" className="flex items-center">
             <img
               src={hezaLogo}
               alt="Heza - Rwanda Opportunities Explorer"
@@ -54,7 +138,6 @@ function App() {
             />
           </a>
 
-          {/* NAVIGATION LINKS */}
           <div className="hidden items-center gap-8 md:flex">
             <a
               href="#home"
@@ -85,7 +168,6 @@ function App() {
             </a>
           </div>
 
-          {/* NAVBAR BUTTON */}
           <a
             href="#opportunities"
             className="rounded-full bg-[#C87968] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#AD6254]"
@@ -99,7 +181,6 @@ function App() {
         {/* HERO SECTION */}
         <section id="home" className="px-6 py-16 md:py-24">
           <div className="mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-2">
-            {/* HERO TEXT */}
             <div>
               <span className="mb-5 inline-block rounded-full bg-[#E8D8C5] px-4 py-2 text-sm font-semibold text-[#8F574B]">
                 Discover. Learn. Grow.
@@ -135,12 +216,16 @@ function App() {
               {/* STATISTICS */}
               <div className="mt-12 grid max-w-lg grid-cols-3 gap-5">
                 <div>
-                  <h2 className="text-3xl font-bold text-[#C87968]">18+</h2>
+                  <h2 className="text-3xl font-bold text-[#C87968]">
+                    {opportunities.length}
+                  </h2>
                   <p className="mt-1 text-sm text-[#6D6265]">Opportunities</p>
                 </div>
 
                 <div>
-                  <h2 className="text-3xl font-bold text-[#C87968]">6</h2>
+                  <h2 className="text-3xl font-bold text-[#C87968]">
+                    {categories.length}
+                  </h2>
                   <p className="mt-1 text-sm text-[#6D6265]">Categories</p>
                 </div>
 
@@ -191,7 +276,6 @@ function App() {
               </p>
             </div>
 
-            {/* CATEGORY CARDS */}
             <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
               {categories.map((category) => (
                 <div
@@ -217,8 +301,7 @@ function App() {
                       href="#opportunities"
                       className="mt-5 inline-flex items-center gap-2 font-semibold text-[#C87968] transition hover:gap-3"
                     >
-                      Explore
-                      <span aria-hidden="true">→</span>
+                      Explore <span aria-hidden="true">→</span>
                     </a>
                   </div>
                 </div>
@@ -227,48 +310,99 @@ function App() {
           </div>
         </section>
 
-        {/* FEATURED OPPORTUNITIES SECTION */}
-        <section id="opportunities" className="px-6 py-20">
+        {/* OPPORTUNITIES SECTION */}
+        <section id="opportunities" className="bg-[#F7F3ED] px-6 py-20">
           <div className="mx-auto max-w-7xl">
-            <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-              <div>
-                <span className="text-sm font-bold tracking-widest text-[#C87968] uppercase">
-                  Don't miss out
-                </span>
+            {/* SECTION HEADING */}
+            <div className="mb-10">
+              <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-[#C87968]">
+                Explore opportunities
+              </p>
 
-                <h2 className="mt-3 text-3xl font-bold md:text-4xl">
-                  Featured opportunities
-                </h2>
+              <h2 className="text-3xl font-bold text-[#302B31] md:text-4xl">
+                Find your next opportunity
+              </h2>
 
-                <p className="mt-3 max-w-xl leading-7 text-[#6D6265]">
-                  Discover selected opportunities to help you take your next
-                  step.
-                </p>
-              </div>
-
-              <a
-                href="#opportunities"
-                className="font-semibold text-[#C87968] hover:underline"
-              >
-                View all opportunities →
-              </a>
-            </div>
-
-            {/* TEMPORARY EMPTY PREVIEW */}
-            <div className="mt-10 rounded-3xl border border-dashed border-[#C87968] bg-white px-6 py-14 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#E8D8C5] text-2xl">
-                ✦
-              </div>
-
-              <h3 className="mt-5 text-xl font-bold">
-                Exciting opportunities are coming
-              </h3>
-
-              <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[#6D6265]">
-                We are preparing opportunities from different cities across
-                Rwanda. Check back soon to discover what's available.
+              <p className="mt-3 max-w-2xl leading-7 text-[#6D6265]">
+                Explore workshops, career events, short courses and community
+                activities happening across Rwanda.
               </p>
             </div>
+
+            {/* ADD OPPORTUNITY BUTTON */}
+            {!showForm && (
+              <button
+                type="button"
+                onClick={handleOpenForm}
+                className="mb-8 rounded-xl bg-[#C87968] px-6 py-3 font-semibold text-white transition hover:bg-[#AD6254] focus:outline-none focus:ring-2 focus:ring-[#C87968] focus:ring-offset-2"
+              >
+                + Add Opportunity
+              </button>
+            )}
+
+            {/* SUCCESS AND CANCEL FEEDBACK */}
+            {feedbackMessage && (
+              <div
+                role="status"
+                className={`mb-8 rounded-xl border px-5 py-4 text-sm font-medium ${
+                  feedbackType === "success"
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : "border-[#E8D8C5] bg-white text-[#6D6265]"
+                }`}
+              >
+                {feedbackMessage}
+              </div>
+            )}
+
+            {/* ADD OPPORTUNITY FORM */}
+            {showForm && (
+              <div className="mb-10">
+                <AddOpportunityForm
+                  onAdd={handleAddOpportunity}
+                  onCancel={handleCancelForm}
+                />
+              </div>
+            )}
+
+            {/* FILTERS */}
+            <OpportunityFilters
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              availableOnly={availableOnly}
+              setAvailableOnly={setAvailableOnly}
+              savedOnly={savedOnly}
+              setSavedOnly={setSavedOnly}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              onReset={handleResetFilters}
+            />
+
+            {/* RESULTS COUNT */}
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-[#6D6265]">
+                Showing{" "}
+                <span className="font-bold text-[#302B31]">
+                  {filteredOpportunities.length}
+                </span>{" "}
+                of {opportunities.length} opportunities
+              </p>
+
+              <p className="text-sm text-[#6D6265]">
+                Saved:{" "}
+                <span className="font-bold text-[#302B31]">
+                  {savedIds.length}
+                </span>
+              </p>
+            </div>
+
+            {/* OPPORTUNITY CARDS */}
+            <OpportunityList
+              opportunities={filteredOpportunities}
+              savedIds={savedIds}
+              onSave={handleSave}
+            />
           </div>
         </section>
 
