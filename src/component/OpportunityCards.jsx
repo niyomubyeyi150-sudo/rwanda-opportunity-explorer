@@ -21,7 +21,7 @@ function OpportunityCard({ opportunity, isSaved, onSave }) {
     },
   );
 
-  const isFullyBooked = availableSeats === 0;
+  const isFullyBooked = availableSeats <= 0;
 
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#E8D8C5] bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg">
